@@ -4,6 +4,10 @@ Windows allows you to listen to an audio device and output recorded sound into a
 
 This console app does the same - it listens to an input device of your choice and outputs recorded audio into another audio output device. Instead of quick and dirty resampling, it uses one of the best algorithms available. We use resampler from WDL library powering Reaper DAW. Here you can find test results for it: [http://src.infinitewave.ca/](http://src.infinitewave.ca/)
 
+## Downloading Binaries
+
+You can find pre-built app here: [https://github.com/chebum/better-listen/releases/tag/1.0](https://github.com/chebum/better-listen/releases/tag/1.0)
+
 ## Usage
 
     wdlresampler input output
