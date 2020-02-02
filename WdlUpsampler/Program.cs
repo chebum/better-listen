@@ -11,30 +11,15 @@ using System.Threading.Tasks;
 
 namespace WdlUpsampler {
     class Program {
+
         static void Main(string[] args) {
-            using (var enumerator = new MMDeviceEnumerator()) {
-                
-                var inputDevices = enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active);
-                var outputDevices = enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active);
-                MMDevice input = null, output = null;
-                if (args.Length > 0) {
-                    foreach (var device in inputDevices) {
-                        if (device.FriendlyName.Contains(args[0])) {
-                            input = device;
-                            break;
-                        }
-                    }
-                }
-                if (args.Length > 1) {
-                    foreach (var device in outputDevices) {
-                        if (device.FriendlyName.Contains(args[1])) {
-                            output = device;
-                            break;
-                        }
-                    }
-                }
-                if (input == null || output == null) {
-                    Console.WriteLine("Usage: wdlresampler <input> <output>");
+
+            if (args.Length < 2) {
+                Console.WriteLine("Usage: wdlresampler <input> <output>");
+                using (var enumerator = new MMDeviceEnumerator()) {
+
+                    var inputDevices = enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active);
+                    var outputDevices = enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active);
                     Console.WriteLine("Available input devices:");
                     foreach (var device in inputDevices) {
                         Console.WriteLine(device.FriendlyName);
@@ -43,13 +28,35 @@ namespace WdlUpsampler {
                     foreach (var device in outputDevices) {
                         Console.WriteLine(device.FriendlyName);
                     }
-                    return;
+
+                }
+                return;
+            }
+
+            StartApp(args[0], args[1]);
+        }
+
+        static void StartApp(string inputName, string outputName) {
+            try {
+
+                MMDevice input = FindDevice(inputName, false),
+                    output = FindDevice(outputName, true);
+
+                if (input == null || output == null) {
+                    Console.WriteLine("Waiting for devices...");
+
+                    while (input == null || output == null) {
+                        Thread.Sleep(500);
+                        input = FindDevice(inputName, false);
+                        output = FindDevice(outputName, true);
+                    }
                 }
 
                 var inputFormat = input.AudioClient.MixFormat;
                 var outputFormat = output.AudioClient.MixFormat;
-                Console.WriteLine("Recording from \"" + input.FriendlyName + "\" (" + FormatToString(inputFormat) + 
+                Console.WriteLine("Recording from \"" + input.FriendlyName + "\" (" + FormatToString(inputFormat) +
                     ") to \"" + output.FriendlyName + "\" (" + FormatToString(outputFormat) + "). Press Enter to exit.");
+
                 using (var recorder = new WasapiCapture(input))
                 using (var player = new WasapiOut(output, AudioClientShareMode.Shared, true, 200)) {
                     var waveInProvider = new WaveInProvider(recorder);
@@ -72,6 +79,27 @@ namespace WdlUpsampler {
 
                 }
 
+            } catch (Exception) {
+
+                Thread.Sleep(1000);
+                StartApp(inputName, outputName);
+
+            }
+        }
+
+        static MMDevice FindDevice(string name, bool forPlayback) {
+            using (var enumerator = new MMDeviceEnumerator()) {
+                MMDeviceCollection devices;
+                if (forPlayback)
+                    devices = enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active);
+                else
+                    devices = enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active);
+                foreach (var device in devices) {
+                    if (device.FriendlyName.Contains(name)) {
+                        return device;
+                    }
+                }
+                return null;
             }
         }
 
