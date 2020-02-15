@@ -66,11 +66,17 @@ namespace WdlUpsampler {
                     player.Init(waveInProvider);
                     var exit = false;
                     player.PlaybackStopped += delegate (object sender, StoppedEventArgs e) {
-                        if (exit)
-                            return;
-                        Thread.Sleep(1000);
-                        player.Init(waveInProvider);
-                        player.Play();
+                        try {
+                            if (exit)
+                                return;
+                            Thread.Sleep(1000);
+                            player.Init(waveInProvider);
+                            player.Play();
+                        } catch(Exception) {
+                            exit = true;
+                            Thread.Sleep(1000);
+                            StartApp(inputName, outputName);
+                        }
                     };
                     player.Play();
                     recorder.StartRecording();
@@ -95,7 +101,7 @@ namespace WdlUpsampler {
                 else
                     devices = enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active);
                 foreach (var device in devices) {
-                    if (device.FriendlyName.Contains(name)) {
+                    if (device.FriendlyName.IndexOf(name, StringComparison.OrdinalIgnoreCase) >= 0) {
                         return device;
                     }
                 }
